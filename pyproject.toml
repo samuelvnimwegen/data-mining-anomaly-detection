@@ -1,0 +1,60 @@
+[project]
+name = "data-mining-anomaly-detection"
+version = "0.1.0"
+description = "Data Mining Assignment 3 from Samuel van Nimwegen"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "ipykernel>=6.29.0,<7.0.0",
+    "matplotlib>=3.8.0,<4.0.0",
+    "nltk>=3.9.0,<4.0.0",
+    "numpy>=1.26.0,<2.0.0",
+    "pandas>=2.2.0,<3.0.0",
+    "scikit-learn>=1.5.0,<2.0.0",
+    "scipy>=1.11.0,<2.0.0",
+    "seaborn>=0.13.0,<0.14.0",
+    "tqdm>=4.66.0,<5.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.10.0,<2.0.0",
+    "pytest>=8.0.0,<9.0.0",
+    "ruff>=0.6.0,<1.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "N", "D", "UP", "NPY"]
+ignore = ["D203", "D213"]
+fixable = ["ALL"]
+unfixable = []
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+filterwarnings = []
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"

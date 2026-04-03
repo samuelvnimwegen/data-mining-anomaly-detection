@@ -1,2 +1,107 @@
-# data-mining-anomaly-detection
+# Data Mining Assignment 3 - Clustering and Anomaly Detection
+
+This repository contains the full setup for Samuel van Nimwegen's University of Antwerp Data Mining Assignment 3.
+
+## Project goals
+
+- Rebuild hidden topical groups with unsupervised clustering.
+- Detect unusual or unsafe files with anomaly detection.
+- Keep the workflow reproducible and easy to review.
+- Apply advanced text normalization with separate clustering and anomaly views.
+
+## Repository structure
+
+```text
+data-mining-anomaly-detection/
+  data/
+    articles.csv
+    clusters.csv
+    anomalies.csv
+  outputs/
+    clusters.csv
+    anomalies.csv
+  src/data_mining_assignment/
+    core/
+      assignment_pipeline.py
+      data_io.py
+      paths.py
+    tasks/
+      preprocessing/
+        text_normalization.py
+        vectorizer.py
+      clustering/
+        kmeans_clustering.py
+      anomaly_detection/
+        isolation_forest_detection.py
+      exploration/
+        data_exploration.py
+  notebooks/
+    01_advanced_exploration_and_normalization.ipynb
+    02_normalization_walkthrough.ipynb
+  tests/
+    test_pipeline.py
+    test_text_normalization.py
+    test_data_exploration.py
+  .github/workflows/ci.yml
+  main.py
+  pyproject.toml
+  requirements.txt
+```
+
+## Environment setup
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -e .[dev]
+```
+
+## How to run
+
+The repository-level script is `main.py`. Inside this file you can toggle tasks by commenting or uncommenting one line.
+
+```python
+assignment_pipeline.run_clustering()
+assignment_pipeline.run_anomaly_detection()
+# assignment_pipeline.run_full()
+```
+
+Run it with:
+
+```bash
+python main.py
+```
+
+## Outputs
+
+- `outputs/clusters.csv` with columns: `doc_id,label`
+- `outputs/anomalies.csv` with columns: `anomaly,doc_id`
+
+## Quality checks
+
+```bash
+ruff format --check .
+ruff check .
+pytest -q
+```
+
+The CI pipeline runs exactly these checks on pushes and pull requests.
+
+## Advanced normalization design
+
+- Lowercases all text before tokenization.
+- Removes HTML tags, URLs, and email patterns.
+- Removes stop words and corpus-specific noise terms.
+- Applies lemmatization with stemming fallback if WordNet is unavailable.
+- Builds two views:
+  - semantic view for clustering (clean vocabulary)
+  - structural view for anomaly detection (keeps punctuation markers)
+
+## Notebooks
+
+Use these notebooks for report material and qualitative checks:
+
+- `notebooks/01_advanced_exploration_and_normalization.ipynb`
+- `notebooks/02_normalization_walkthrough.ipynb`
 
