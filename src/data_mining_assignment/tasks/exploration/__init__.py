@@ -2,8 +2,16 @@
 
 from data_mining_assignment.tasks.exploration.data_exploration import (
     ExplorationSummary,
+    build_anomaly_candidate_table,
     compare_normalization_variants,
+    sample_top_anomaly_texts,
     summarize_corpus,
 )
 
-__all__ = ["ExplorationSummary", "compare_normalization_variants", "summarize_corpus"]
+__all__ = [
+    "ExplorationSummary",
+    "build_anomaly_candidate_table",
+    "compare_normalization_variants",
+    "sample_top_anomaly_texts",
+    "summarize_corpus",
+]

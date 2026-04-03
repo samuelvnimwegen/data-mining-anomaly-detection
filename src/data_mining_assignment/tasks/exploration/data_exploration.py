@@ -6,6 +6,8 @@ import re
 from dataclasses import dataclass
 from statistics import mean
 
+import pandas as pd
+
 
 @dataclass(slots=True)
 class ExplorationSummary:
@@ -84,3 +86,60 @@ def compare_normalization_variants(raw_texts: list[str], normalized_texts: list[
         "normalized_token_count": float(normalized_token_count),
         "token_reduction_ratio": token_reduction_ratio,
     }
+
+
+def build_anomaly_candidate_table(
+    document_ids: list[str],
+    anomaly_scores: list[float],
+    anomaly_mask: list[bool] | None = None,
+) -> pd.DataFrame:
+    """Builds a ranked anomaly table from model scores.
+
+    Args:
+        document_ids: Ordered document ids.
+        anomaly_scores: Raw anomaly scores where lower means more abnormal.
+        anomaly_mask: Optional boolean anomaly mask from model prediction.
+
+    Returns:
+        pd.DataFrame: Ranked anomaly candidates with score details.
+    """
+    anomaly_candidate_table = pd.DataFrame(
+        {
+            "doc_id": document_ids,
+            "score": anomaly_scores,
+        }
+    )
+    if anomaly_mask is not None:
+        anomaly_candidate_table["predicted_anomaly"] = anomaly_mask
+
+    anomaly_candidate_table = anomaly_candidate_table.sort_values("score", ascending=True).reset_index(drop=True)
+    anomaly_candidate_table["anomaly_rank"] = anomaly_candidate_table.index + 1
+    return anomaly_candidate_table
+
+
+def sample_top_anomaly_texts(
+    anomaly_candidate_table: pd.DataFrame,
+    document_ids: list[str],
+    raw_texts: list[str],
+    top_k: int = 10,
+) -> pd.DataFrame:
+    """Returns top ranked anomaly rows with raw text snippets.
+
+    Args:
+        anomaly_candidate_table: Ranked candidate table.
+        document_ids: Ordered document ids aligned with raw texts.
+        raw_texts: Raw text list aligned with original doc order.
+        top_k: Number of top anomalies to show.
+
+    Returns:
+        pd.DataFrame: Top anomaly rows with short text snippets.
+    """
+    top_anomaly_rows = anomaly_candidate_table.head(top_k).copy()
+    raw_text_lookup_by_doc_id = {document_id: text for document_id, text in zip(document_ids, raw_texts, strict=False)}
+
+    # This maps ranked rows back to snippets for quick manual review.
+    top_anomaly_rows["snippet"] = [
+        str(raw_text_lookup_by_doc_id.get(document_id, ""))[:220].replace("\n", " ")
+        for document_id in top_anomaly_rows["doc_id"].tolist()
+    ]
+    return top_anomaly_rows

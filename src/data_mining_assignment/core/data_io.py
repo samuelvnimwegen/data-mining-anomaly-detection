@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
+from scipy.sparse import load_npz, save_npz, spmatrix
 
 
 class ArticleDataset:
@@ -115,3 +117,86 @@ def save_anomalies(anomaly_data_frame: pd.DataFrame, output_csv_path: Path) -> N
     """
     output_csv_path.parent.mkdir(parents=True, exist_ok=True)
     anomaly_data_frame[["anomaly", "doc_id"]].to_csv(output_csv_path, index=False)
+
+
+def save_processed_text_views(
+    document_ids: list[str],
+    clustering_texts: list[str],
+    anomaly_texts: list[str],
+    output_csv_path: Path,
+) -> None:
+    """Saves normalized text views used by downstream models.
+
+    Args:
+        document_ids: Ordered document ids.
+        clustering_texts: Normalized texts for clustering.
+        anomaly_texts: Normalized texts for anomaly detection.
+        output_csv_path: Destination CSV path.
+    """
+    output_csv_path.parent.mkdir(parents=True, exist_ok=True)
+    processed_text_views = pd.DataFrame(
+        {
+            "doc_id": document_ids,
+            "clustering_text": clustering_texts,
+            "anomaly_text": anomaly_texts,
+        }
+    )
+    processed_text_views.to_csv(output_csv_path, index=False)
+
+
+def load_processed_text_views(input_csv_path: Path) -> pd.DataFrame:
+    """Loads cached normalized text views.
+
+    Args:
+        input_csv_path: CSV path written by `save_processed_text_views`.
+
+    Returns:
+        pd.DataFrame: Cached normalized text view rows.
+    """
+    return pd.read_csv(input_csv_path)
+
+
+def save_processed_sparse_matrix(sparse_matrix: spmatrix, output_npz_path: Path) -> None:
+    """Saves a sparse feature matrix to disk.
+
+    Args:
+        sparse_matrix: Sparse feature matrix.
+        output_npz_path: Destination NPZ path.
+    """
+    output_npz_path.parent.mkdir(parents=True, exist_ok=True)
+    save_npz(output_npz_path, sparse_matrix)
+
+
+def load_processed_sparse_matrix(input_npz_path: Path) -> spmatrix:
+    """Loads a sparse feature matrix from disk.
+
+    Args:
+        input_npz_path: NPZ path written by `save_processed_sparse_matrix`.
+
+    Returns:
+        spmatrix: Loaded sparse matrix.
+    """
+    return load_npz(input_npz_path)
+
+
+def save_processed_dense_matrix(dense_matrix: np.ndarray, output_npy_path: Path) -> None:
+    """Saves a dense feature matrix to disk.
+
+    Args:
+        dense_matrix: Dense feature matrix.
+        output_npy_path: Destination NPY path.
+    """
+    output_npy_path.parent.mkdir(parents=True, exist_ok=True)
+    np.save(output_npy_path, dense_matrix)
+
+
+def load_processed_dense_matrix(input_npy_path: Path) -> np.ndarray:
+    """Loads a dense feature matrix from disk.
+
+    Args:
+        input_npy_path: NPY path written by `save_processed_dense_matrix`.
+
+    Returns:
+        np.ndarray: Loaded dense matrix.
+    """
+    return np.load(input_npy_path)

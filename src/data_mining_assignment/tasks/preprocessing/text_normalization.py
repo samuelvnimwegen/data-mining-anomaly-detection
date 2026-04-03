@@ -31,7 +31,7 @@ class NormalizationConfig:
     remove_non_alphanumeric: bool = True
     remove_digits: bool = True
     use_lemmatization: bool = True
-    use_stemming_fallback: bool = True
+    use_stemming_fallback: bool = False
     extra_stop_words: set[str] = field(default_factory=set)
     preserve_structure_markers: bool = False
 
@@ -72,6 +72,7 @@ class TextNormalizer:
             preserve_structure_markers=False,
             remove_non_alphanumeric=True,
             remove_digits=True,
+            use_stemming_fallback=False,
             extra_stop_words={"nbsp", "http", "https", "www"},
         )
         self.anomaly_config = anomaly_config or NormalizationConfig(
@@ -79,6 +80,7 @@ class TextNormalizer:
             remove_non_alphanumeric=False,
             remove_digits=False,
             use_lemmatization=False,
+            use_stemming_fallback=False,
             extra_stop_words=set(),
         )
         self.wordnet_lemmatizer = WordNetLemmatizer()
@@ -156,7 +158,7 @@ class TextNormalizer:
             try:
                 return self.wordnet_lemmatizer.lemmatize(raw_token)
             except LookupError:
-                # This keeps tests stable when NLTK corpora are missing.
+                # Keep the original token if WordNet data is not installed.
                 if normalization_config.use_stemming_fallback:
                     return self.porter_stemmer.stem(raw_token)
                 return raw_token

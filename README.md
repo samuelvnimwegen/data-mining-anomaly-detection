@@ -14,7 +14,12 @@ This repository contains the full setup for Samuel van Nimwegen's University of 
 ```text
 data-mining-anomaly-detection/
   data/
-    articles.csv
+    raw/
+      articles.csv
+    processed/
+      normalized_text_views.csv
+      clustering_tfidf_matrix.npz
+      anomaly_lsa_matrix.npy
     clusters.csv
     anomalies.csv
   outputs/
@@ -77,6 +82,9 @@ python main.py
 
 - `outputs/clusters.csv` with columns: `doc_id,label`
 - `outputs/anomalies.csv` with columns: `anomaly,doc_id`
+- `data/processed/normalized_text_views.csv` with cached normalized texts
+- `data/processed/clustering_tfidf_matrix.npz` with cached clustering features
+- `data/processed/anomaly_lsa_matrix.npy` with cached anomaly features
 
 ## Quality checks
 
@@ -93,10 +101,29 @@ The CI pipeline runs exactly these checks on pushes and pull requests.
 - Lowercases all text before tokenization.
 - Removes HTML tags, URLs, and email patterns.
 - Removes stop words and corpus-specific noise terms.
-- Applies lemmatization with stemming fallback if WordNet is unavailable.
+- Applies lemmatization with safe fallback that keeps full words.
 - Builds two views:
   - semantic view for clustering (clean vocabulary)
   - structural view for anomaly detection (keeps punctuation markers)
+
+## Vectorization and high-dimensional representation
+
+- `bow`: Count-based baseline for quick comparisons.
+- `tfidf`: Primary clustering representation with interpretable terms.
+- `tfidf_lsa_dense`: TF-IDF reduced with Truncated SVD (LSA) for dense anomaly features.
+- `tfidf_svd_dense`: Backward-compatible alias that maps to `tfidf_lsa_dense`.
+- Default pipeline strategy:
+  - clustering uses word-level `tfidf`
+  - anomaly detection uses `tfidf_lsa_dense` with char n-grams
+
+This design keeps cluster terms interpretable while giving anomaly detection a dense feature space.
+
+## Dimensionality reduction with LSA
+
+- LSA applies Truncated SVD on top of TF-IDF.
+- It reduces sparse high-dimensional vectors into compact dense vectors.
+- It improves distance stability for anomaly detection and speeds model fitting.
+- Truncated SVD works directly on sparse TF-IDF without dense centering.
 
 ## Notebooks
 
@@ -104,4 +131,5 @@ Use these notebooks for report material and qualitative checks:
 
 - `notebooks/01_advanced_exploration_and_normalization.ipynb`
 - `notebooks/02_normalization_walkthrough.ipynb`
-
+- `notebooks/03_lsa_anomaly_search.ipynb`
+- `notebooks/04_anomaly_vectorization_comparison.ipynb`

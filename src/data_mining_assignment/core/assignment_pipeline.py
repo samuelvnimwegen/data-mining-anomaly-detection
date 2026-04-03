@@ -6,7 +6,17 @@ from pathlib import Path
 
 import pandas as pd
 
-from data_mining_assignment.core.data_io import ArticleDataset, save_anomalies, save_clusters
+from data_mining_assignment.core.data_io import (
+    ArticleDataset,
+    load_processed_dense_matrix,
+    load_processed_sparse_matrix,
+    load_processed_text_views,
+    save_anomalies,
+    save_clusters,
+    save_processed_dense_matrix,
+    save_processed_sparse_matrix,
+    save_processed_text_views,
+)
 from data_mining_assignment.core.paths import PipelinePaths
 from data_mining_assignment.tasks.anomaly_detection import TextAnomalyDetector, create_anomaly_output
 from data_mining_assignment.tasks.clustering import TextClusterer, create_cluster_output
@@ -45,6 +55,7 @@ class AssignmentPipeline:
         self.normalizer = TextNormalizer()
 
         self.clustering_preprocessor = TextPreprocessor(
+            vectorization_model_name="tfidf",
             max_features=20000,
             min_document_frequency=1,
             max_document_frequency=0.92,
@@ -52,11 +63,14 @@ class AssignmentPipeline:
             analyzer_mode="word",
         )
         self.anomaly_preprocessor = TextPreprocessor(
-            max_features=25000,
+            vectorization_model_name="tfidf_lsa_dense",
+            max_features=30000,
             min_document_frequency=1,
             max_document_frequency=1.0,
             ngram_range=(3, 5),
             analyzer_mode="char_wb",
+            dense_embedding_dimension=256,
+            random_seed=random_seed,
         )
 
         self.clusterer = TextClusterer(random_seed=random_seed)
@@ -150,13 +164,91 @@ class AssignmentPipeline:
         if self._cached_articles_data_frame is None:
             self._cached_articles_data_frame = self.dataset.load_articles()
 
-        if self._cached_clustering_tfidf_matrix is None or self._cached_anomaly_tfidf_matrix is None:
-            normalized_text_bundle = self.normalizer.normalize_for_both_tasks(
-                self._cached_articles_data_frame["text"].tolist()
-            )
-            self._cached_clustering_tfidf_matrix = self.clustering_preprocessor.fit_transform(
-                normalized_text_bundle.clustering_texts
-            )
-            self._cached_anomaly_tfidf_matrix = self.anomaly_preprocessor.fit_transform(
-                normalized_text_bundle.anomaly_texts
-            )
+        if self._cached_clustering_tfidf_matrix is not None and self._cached_anomaly_tfidf_matrix is not None:
+            return
+
+        if self._can_load_processed_features() and self._load_processed_features():
+            return
+
+        normalized_text_bundle = self.normalizer.normalize_for_both_tasks(
+            self._cached_articles_data_frame["text"].tolist()
+        )
+        self._cached_clustering_tfidf_matrix = self.clustering_preprocessor.fit_transform(
+            normalized_text_bundle.clustering_texts
+        )
+        self._cached_anomaly_tfidf_matrix = self.anomaly_preprocessor.fit_transform(
+            normalized_text_bundle.anomaly_texts
+        )
+        self._save_processed_features(
+            clustering_texts=normalized_text_bundle.clustering_texts,
+            anomaly_texts=normalized_text_bundle.anomaly_texts,
+        )
+
+    def _can_load_processed_features(self) -> bool:
+        """Checks whether all processed intermediate files exist."""
+        if (
+            self.pipeline_paths.processed_text_views_csv is None
+            or self.pipeline_paths.processed_clustering_matrix_npz is None
+            or self.pipeline_paths.processed_anomaly_matrix_npy is None
+        ):
+            return False
+
+        return (
+            self.pipeline_paths.processed_text_views_csv.exists()
+            and self.pipeline_paths.processed_clustering_matrix_npz.exists()
+            and self.pipeline_paths.processed_anomaly_matrix_npy.exists()
+        )
+
+    def _load_processed_features(self) -> bool:
+        """Loads processed intermediates from disk.
+
+        Returns:
+            bool: True when cache is loaded and valid, else False.
+        """
+        assert self._cached_articles_data_frame is not None
+        assert self.pipeline_paths.processed_text_views_csv is not None
+        assert self.pipeline_paths.processed_clustering_matrix_npz is not None
+        assert self.pipeline_paths.processed_anomaly_matrix_npy is not None
+
+        processed_text_views = load_processed_text_views(self.pipeline_paths.processed_text_views_csv)
+        current_document_ids = self._cached_articles_data_frame["doc_id"].tolist()
+
+        if processed_text_views["doc_id"].astype(str).tolist() != current_document_ids:
+            # Data changed, so processed cache is stale.
+            return False
+
+        self._cached_clustering_tfidf_matrix = load_processed_sparse_matrix(
+            self.pipeline_paths.processed_clustering_matrix_npz
+        )
+        self._cached_anomaly_tfidf_matrix = load_processed_dense_matrix(
+            self.pipeline_paths.processed_anomaly_matrix_npy
+        )
+        return True
+
+    def _save_processed_features(self, clustering_texts: list[str], anomaly_texts: list[str]) -> None:
+        """Writes processed intermediates to disk."""
+        assert self._cached_articles_data_frame is not None
+        assert self._cached_clustering_tfidf_matrix is not None
+        assert self._cached_anomaly_tfidf_matrix is not None
+
+        if (
+            self.pipeline_paths.processed_text_views_csv is None
+            or self.pipeline_paths.processed_clustering_matrix_npz is None
+            or self.pipeline_paths.processed_anomaly_matrix_npy is None
+        ):
+            return
+
+        save_processed_text_views(
+            document_ids=self._cached_articles_data_frame["doc_id"].tolist(),
+            clustering_texts=clustering_texts,
+            anomaly_texts=anomaly_texts,
+            output_csv_path=self.pipeline_paths.processed_text_views_csv,
+        )
+        save_processed_sparse_matrix(
+            sparse_matrix=self._cached_clustering_tfidf_matrix,
+            output_npz_path=self.pipeline_paths.processed_clustering_matrix_npz,
+        )
+        save_processed_dense_matrix(
+            dense_matrix=self._cached_anomaly_tfidf_matrix,
+            output_npy_path=self.pipeline_paths.processed_anomaly_matrix_npy,
+        )

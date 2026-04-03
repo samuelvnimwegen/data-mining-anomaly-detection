@@ -32,7 +32,7 @@ class TextAnomalyDetector:
             random_state=self.random_seed,
         )
 
-    def run_detection(self, tfidf_matrix: spmatrix) -> tuple[np.ndarray, np.ndarray]:
+    def run_detection(self, tfidf_matrix: spmatrix | np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Runs anomaly detection on vectorized text.
 
         Args:
