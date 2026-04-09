@@ -38,8 +38,8 @@ class PipelinePaths:
         """
         return cls(
             input_articles_csv=project_root_path / "data" / "raw" / "articles.csv",
-            output_clusters_csv=project_root_path / "outputs" / "clusters.csv",
-            output_anomalies_csv=project_root_path / "outputs" / "anomalies.csv",
+            output_clusters_csv=project_root_path / "data" / "results" / "clusters.csv",
+            output_anomalies_csv=project_root_path / "data" / "results" / "anomalies.csv",
             processed_text_views_csv=project_root_path / "data" / "processed" / "normalized_text_views.csv",
             processed_clustering_matrix_npz=project_root_path / "data" / "processed" / "clustering_tfidf_matrix.npz",
             processed_anomaly_matrix_npy=project_root_path / "data" / "processed" / "anomaly_lsa_matrix.npy",

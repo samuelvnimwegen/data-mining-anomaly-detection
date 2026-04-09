@@ -1,6 +1,7 @@
 """Tests for corpus exploration helpers."""
 
 from __future__ import annotations
+from dataclasses import asdict
 
 from data_mining_assignment.tasks.exploration import (
     build_anomaly_candidate_table,
@@ -69,3 +70,13 @@ def test_sample_top_anomaly_texts_adds_matching_snippets() -> None:
     assert "snippet" in top_rows.columns
     assert top_rows.iloc[0]["doc_id"] == "DOC_002"
     assert "buy now" in top_rows.iloc[0]["snippet"]
+
+
+def test_summarize_corpus_supports_dataclass_asdict_conversion() -> None:
+    """Checks summary dataclass can be serialized with asdict."""
+    summary = summarize_corpus(["Simple text", "Another row"])
+    summary_as_dictionary = asdict(summary)
+
+    assert "document_count" in summary_as_dictionary
+    assert summary_as_dictionary["document_count"] == 2
+

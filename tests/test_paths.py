@@ -7,12 +7,14 @@ from pathlib import Path
 from data_mining_assignment.core.paths import PipelinePaths
 
 
-def test_pipeline_paths_use_raw_and_processed_folders() -> None:
-    """Checks default path mapping points to raw input and processed caches."""
+def test_pipeline_paths_use_raw_results_and_processed_folders() -> None:
+    """Checks default path mapping uses raw input, results outputs, and processed caches."""
     project_root_path = Path("/tmp/example-project")
     pipeline_paths = PipelinePaths.from_project_root(project_root_path)
 
     assert pipeline_paths.input_articles_csv == project_root_path / "data" / "raw" / "articles.csv"
+    assert pipeline_paths.output_clusters_csv == project_root_path / "data" / "results" / "clusters.csv"
+    assert pipeline_paths.output_anomalies_csv == project_root_path / "data" / "results" / "anomalies.csv"
     assert (
         pipeline_paths.processed_text_views_csv
         == project_root_path / "data" / "processed" / "normalized_text_views.csv"

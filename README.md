@@ -20,11 +20,10 @@ data-mining-anomaly-detection/
       normalized_text_views.csv
       clustering_tfidf_matrix.npz
       anomaly_lsa_matrix.npy
-    clusters.csv
-    anomalies.csv
-  outputs/
-    clusters.csv
-    anomalies.csv
+    results/
+      clusters.csv
+      anomalies.csv
+      notebook_*.csv
   src/data_mining_assignment/
     core/
       assignment_pipeline.py
@@ -80,8 +79,9 @@ python main.py
 
 ## Outputs
 
-- `outputs/clusters.csv` with columns: `doc_id,label`
-- `outputs/anomalies.csv` with columns: `anomaly,doc_id`
+- `data/results/clusters.csv` with columns: `doc_id,label`
+- `data/results/anomalies.csv` with columns: `anomaly,doc_id`
+- `data/results/notebook_*.csv` files with notebook diagnostics and comparison tables
 - `data/processed/normalized_text_views.csv` with cached normalized texts
 - `data/processed/clustering_tfidf_matrix.npz` with cached clustering features
 - `data/processed/anomaly_lsa_matrix.npy` with cached anomaly features
@@ -133,3 +133,10 @@ Use these notebooks for report material and qualitative checks:
 - `notebooks/02_normalization_walkthrough.ipynb`
 - `notebooks/03_lsa_anomaly_search.ipynb`
 - `notebooks/04_anomaly_vectorization_comparison.ipynb`
+- `notebooks/05_task2_clustering_methods_demo.ipynb`
+- `notebooks/06_task2_cluster_interpretation_and_submission.ipynb`
+- `notebooks/07_task3_anomaly_methods_and_top50.ipynb`
+
+## Strategic guide
+
+- `docs/assignment_3_strategic_implementation.md` (first-person report draft for Assignment 3)

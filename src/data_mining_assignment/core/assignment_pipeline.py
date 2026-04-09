@@ -110,7 +110,7 @@ class AssignmentPipeline:
         )
 
     def run_clustering(self) -> pd.DataFrame:
-        """Runs clustering and saves `outputs/clusters.csv`.
+        """Runs clustering and saves `data/results/clusters.csv`.
 
         Returns:
             pd.DataFrame: Cluster output rows.
@@ -131,7 +131,7 @@ class AssignmentPipeline:
         return cluster_output_data_frame
 
     def run_anomaly_detection(self) -> pd.DataFrame:
-        """Runs anomaly detection and saves `outputs/anomalies.csv`.
+        """Runs anomaly detection and saves `data/results/anomalies.csv`.
 
         Returns:
             pd.DataFrame: Anomaly output rows.

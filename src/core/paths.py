@@ -31,7 +31,7 @@ class PipelinePaths:
             PipelinePaths: Default path setup for this project.
         """
         return cls(
-            input_articles_csv=project_root_path / "data" / "articles.csv",
-            output_clusters_csv=project_root_path / "outputs" / "clusters.csv",
-            output_anomalies_csv=project_root_path / "outputs" / "anomalies.csv",
+            input_articles_csv=project_root_path / "data" / "raw" / "articles.csv",
+            output_clusters_csv=project_root_path / "data" / "results" / "clusters.csv",
+            output_anomalies_csv=project_root_path / "data" / "results" / "anomalies.csv",
         )
