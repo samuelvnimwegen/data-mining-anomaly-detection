@@ -24,6 +24,7 @@ def main() -> None:
     # Comment or uncomment these lines to run single tasks.
     assignment_pipeline.run_clustering()
     assignment_pipeline.run_anomaly_detection()
+    assignment_pipeline.run_bag_of_words_export()
     # assignment_pipeline.run_full()
 
 

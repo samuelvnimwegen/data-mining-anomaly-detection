@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.sparse import load_npz, save_npz, spmatrix
+from scipy.sparse import csr_matrix, load_npz, save_npz, spmatrix
 
 
 class ArticleDataset:
@@ -200,3 +201,45 @@ def load_processed_dense_matrix(input_npy_path: Path) -> np.ndarray:
         np.ndarray: Loaded dense matrix.
     """
     return np.load(input_npy_path)
+
+
+def save_bag_of_words_matrix_csv(
+    document_ids: list[str],
+    bag_of_words_matrix: spmatrix,
+    feature_names: list[str],
+    output_csv_path: Path,
+) -> None:
+    """Saves a bag-of-words matrix to CSV with popular terms first.
+
+    Args:
+        document_ids: Ordered document ids.
+        bag_of_words_matrix: Sparse bag-of-words matrix.
+        feature_names: Term names for matrix columns.
+        output_csv_path: Destination CSV path.
+
+    Raises:
+        ValueError: If matrix shape does not match ids or feature names.
+    """
+    if bag_of_words_matrix.shape[0] != len(document_ids):
+        raise ValueError("Document id count does not match matrix row count.")
+
+    if bag_of_words_matrix.shape[1] != len(feature_names):
+        raise ValueError("Feature name count does not match matrix column count.")
+
+    # Sort columns by total term count. This keeps the most common terms first.
+    term_popularity = np.asarray(bag_of_words_matrix.sum(axis=0)).ravel()
+    sorted_column_indices = np.lexsort((np.array(feature_names), -term_popularity))
+
+    sorted_feature_names = [feature_names[column_index] for column_index in sorted_column_indices]
+    sorted_matrix = csr_matrix(bag_of_words_matrix[:, sorted_column_indices])
+
+    output_csv_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Write one row at a time so memory stays stable on large corpora.
+    with output_csv_path.open("w", encoding="utf-8", newline="") as output_file:
+        csv_writer = csv.writer(output_file)
+        csv_writer.writerow(["doc_id", *sorted_feature_names])
+
+        for row_index, document_id in enumerate(document_ids):
+            row_values = sorted_matrix.getrow(row_index).toarray().ravel().astype(int)
+            csv_writer.writerow([document_id, *row_values.tolist()])

@@ -15,6 +15,7 @@ def test_pipeline_paths_use_raw_results_and_processed_folders() -> None:
     assert pipeline_paths.input_articles_csv == project_root_path / "data" / "raw" / "articles.csv"
     assert pipeline_paths.output_clusters_csv == project_root_path / "data" / "results" / "clusters.csv"
     assert pipeline_paths.output_anomalies_csv == project_root_path / "data" / "results" / "anomalies.csv"
+    assert pipeline_paths.output_bag_of_words_csv == project_root_path / "data" / "results" / "bag_of_words_matrix.csv"
     assert (
         pipeline_paths.processed_text_views_csv
         == project_root_path / "data" / "processed" / "normalized_text_views.csv"

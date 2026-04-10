@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
+from scipy.sparse import spmatrix
 
 from data_mining_assignment.core.data_io import (
     ArticleDataset,
@@ -12,6 +13,7 @@ from data_mining_assignment.core.data_io import (
     load_processed_sparse_matrix,
     load_processed_text_views,
     save_anomalies,
+    save_bag_of_words_matrix_csv,
     save_clusters,
     save_processed_dense_matrix,
     save_processed_sparse_matrix,
@@ -148,6 +150,47 @@ class AssignmentPipeline:
         )
         save_anomalies(anomaly_output_data_frame, self.pipeline_paths.output_anomalies_csv)
         return anomaly_output_data_frame
+
+    def run_bag_of_words_export(self) -> pd.DataFrame:
+        """Builds and saves a popularity-sorted bag-of-words matrix.
+
+        Returns:
+            pd.DataFrame: One-row metadata about the written export.
+        """
+        if self._cached_articles_data_frame is None:
+            self._cached_articles_data_frame = self.dataset.load_articles()
+
+        normalized_text_bundle = self.normalizer.normalize_for_both_tasks(
+            self._cached_articles_data_frame["text"].tolist()
+        )
+
+        bag_of_words_preprocessor = TextPreprocessor(
+            vectorization_model_name="bow",
+            max_features=self.clustering_preprocessor.max_features,
+            min_document_frequency=1,
+            max_document_frequency=1.0,
+            ngram_range=(1, 1),
+            analyzer_mode="word",
+        )
+
+        bag_of_words_matrix = bag_of_words_preprocessor.fit_transform(normalized_text_bundle.clustering_texts)
+        if not isinstance(bag_of_words_matrix, spmatrix):
+            raise ValueError("Bag-of-words export expects a sparse matrix.")
+
+        feature_names = bag_of_words_preprocessor.get_feature_names()
+        save_bag_of_words_matrix_csv(
+            document_ids=self._cached_articles_data_frame["doc_id"].tolist(),
+            bag_of_words_matrix=bag_of_words_matrix,
+            feature_names=feature_names,
+            output_csv_path=self.pipeline_paths.output_bag_of_words_csv,
+        )
+        return pd.DataFrame(
+            {
+                "output_csv_path": [str(self.pipeline_paths.output_bag_of_words_csv)],
+                "document_count": [len(self._cached_articles_data_frame)],
+                "term_count": [len(feature_names)],
+            }
+        )
 
     def run_full(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Runs clustering and anomaly detection in one call.
