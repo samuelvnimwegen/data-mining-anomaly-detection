@@ -131,11 +131,11 @@ Use these notebooks for report material and qualitative checks:
 
 - `notebooks/01_advanced_exploration_and_normalization.ipynb`
 - `notebooks/02_normalization_walkthrough.ipynb`
-- `notebooks/03_lsa_anomaly_search.ipynb`
-- `notebooks/04_anomaly_vectorization_comparison.ipynb`
-- `notebooks/05_task2_clustering_methods_demo.ipynb`
-- `notebooks/06_task2_cluster_interpretation_and_submission.ipynb`
-- `notebooks/07_task3_anomaly_methods_and_top50.ipynb`
+- `notebooks/03_task2_clustering_methods_demo.ipynb`
+- `notebooks/04_task2_cluster_interpretation_and_submission.ipynb`
+- `notebooks/05_task3_anomaly_methods_and_top50.ipynb`
+- `notebooks/06_task3_lsa_anomaly_search.ipynb`
+- `notebooks/07_task3_anomaly_vectorization_comparison.ipynb`
 
 ## Strategic guide
 

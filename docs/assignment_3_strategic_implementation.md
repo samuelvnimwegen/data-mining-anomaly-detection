@@ -87,8 +87,8 @@ Why I use LSA:
 
 This is documented and explored in:
 
-- `notebooks/03_lsa_anomaly_search.ipynb`
-- `notebooks/04_anomaly_vectorization_comparison.ipynb`
+- `notebooks/06_task3_lsa_anomaly_search.ipynb`
+- `notebooks/07_task3_anomaly_vectorization_comparison.ipynb`
 
 ## Task 2: Clustering Methodology
 
@@ -130,7 +130,7 @@ This avoids fragile threshold behavior and gives consistent output size.
 
 ### Comparative diagnostics
 
-In `notebooks/04_anomaly_vectorization_comparison.ipynb`, I compare sparse TF-IDF vs TF-IDF+LSA and inspect overlap/rank-correlation behavior to understand disagreement patterns.
+In `notebooks/07_task3_anomaly_vectorization_comparison.ipynb`, I compare sparse TF-IDF vs TF-IDF+LSA and inspect overlap/rank-correlation behavior to understand disagreement patterns.
 
 ## Interpretability and Reporting Strategy
 
@@ -170,4 +170,3 @@ From my perspective as a student, the key lesson is that robust text mining is n
 - and mixed quantitative + qualitative evaluation.
 
 That combination gives me a defensible and high-quality Assignment 3 submission.
-
