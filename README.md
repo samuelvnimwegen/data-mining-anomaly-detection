@@ -24,7 +24,7 @@ data-mining-anomaly-detection/
       clusters.csv
       anomalies.csv
       notebook_*.csv
-  src/data_mining_assignment/
+  src/
     core/
       assignment_pipeline.py
       data_io.py

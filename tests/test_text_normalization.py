@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from data_mining_assignment.tasks.preprocessing import NormalizationConfig, TextNormalizer
+from preprocessing import NormalizationConfig, TextNormalizer
 
 
 def test_normalization_removes_html_stopwords_and_digit_codes() -> None:

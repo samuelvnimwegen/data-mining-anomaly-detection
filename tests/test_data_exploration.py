@@ -3,7 +3,7 @@
 from __future__ import annotations
 from dataclasses import asdict
 
-from data_mining_assignment.tasks.exploration import (
+from exploration import (
     build_anomaly_candidate_table,
     compare_normalization_variants,
     sample_top_anomaly_texts,
@@ -79,4 +79,3 @@ def test_summarize_corpus_supports_dataclass_asdict_conversion() -> None:
 
     assert "document_count" in summary_as_dictionary
     assert summary_as_dictionary["document_count"] == 2
-

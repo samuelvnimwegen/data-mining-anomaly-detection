@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 from scipy.sparse import spmatrix
 
-from data_mining_assignment.tasks.preprocessing import TextPreprocessor
+from preprocessing import TextPreprocessor
 
 
 def test_tfidf_vectorization_returns_sparse_matrix() -> None:

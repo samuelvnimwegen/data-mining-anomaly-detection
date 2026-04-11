@@ -17,7 +17,7 @@ I organized the repository to separate responsibilities and keep experiments rep
 - `data/raw/`: Immutable source data.
 - `data/processed/`: Cached intermediate features (normalized text views, sparse/dense matrices).
 - `data/results/`: Final deliverables and notebook result tables.
-- `src/data_mining_assignment/`: Core pipeline code and task modules.
+- `src/`: Core pipeline code and domain modules.
 - `notebooks/`: Exploratory analysis and model comparison work.
 - `main.py`: Single-line toggles for running clustering and anomaly detection.
 
@@ -37,7 +37,7 @@ This follows the assignment requirement that task execution is easy to switch wi
 
 I start by exploring corpus quality and noise patterns with helpers in:
 
-- `src/data_mining_assignment/tasks/exploration/data_exploration.py`
+- `src/exploration/data_exploration.py`
 - `notebooks/01_advanced_exploration_and_normalization.ipynb`
 
 ### What I normalize and why
@@ -71,7 +71,7 @@ I use multiple representations, with clear role separation:
 
 My implementation for vectorization is centralized in:
 
-- `src/data_mining_assignment/tasks/preprocessing/vectorizer.py`
+- `src/preprocessing/vectorizer.py`
 
 This setup gives me an interpretable cluster pipeline while still supporting strong outlier sensitivity.
 
@@ -94,7 +94,7 @@ This is documented and explored in:
 
 My production clustering model is K-Means, implemented in:
 
-- `src/data_mining_assignment/tasks/clustering/kmeans_clustering.py`
+- `src/clustering/kmeans_clustering.py`
 
 ### Model strategy
 
@@ -115,7 +115,7 @@ This combination is necessary because text clusters can look acceptable numerica
 
 My production anomaly detector is Isolation Forest, implemented in:
 
-- `src/data_mining_assignment/tasks/anomaly_detection/isolation_forest_detection.py`
+- `src/anomaly_detection/isolation_forest_detection.py`
 
 ### Detection strategy
 

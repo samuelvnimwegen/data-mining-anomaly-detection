@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from data_mining_assignment.core.paths import PipelinePaths
+from core.paths import PipelinePaths
 
 
 def test_pipeline_paths_use_raw_results_and_processed_folders() -> None:

@@ -11,7 +11,7 @@ SOURCE_PATH = PROJECT_ROOT_PATH / "src"
 if str(SOURCE_PATH) not in sys.path:
     sys.path.insert(0, str(SOURCE_PATH))
 
-from data_mining_assignment.core import AssignmentPipeline  # noqa: E402
+from core import AssignmentPipeline  # noqa: E402
 
 
 def main() -> None:

@@ -1,6 +1,6 @@
 """Data exploration package used before model training."""
 
-from data_mining_assignment.tasks.exploration.data_exploration import (
+from exploration.data_exploration import (
     ExplorationSummary,
     build_anomaly_candidate_table,
     compare_normalization_variants,

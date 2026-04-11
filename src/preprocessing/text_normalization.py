@@ -141,9 +141,7 @@ class TextNormalizer:
             NormalizedTextBundle: Dataclass with clustering and anomaly lists.
         """
         # Apply the clustering pipeline to each raw text.
-        clustering_texts = [
-            self.normalize_text(single_text, self.clustering_config) for single_text in raw_texts
-        ]
+        clustering_texts = [self.normalize_text(single_text, self.clustering_config) for single_text in raw_texts]
 
         # Apply the anomaly pipeline to each raw text.
         anomaly_texts = [self.normalize_text(single_text, self.anomaly_config) for single_text in raw_texts]
@@ -168,8 +166,7 @@ class TextNormalizer:
         # Lowercase the whole document to canonicalize casing.
         cleaned_text = raw_text.lower()
 
-        # Strip HTML tags when requested. Replace with space to keep token
-        # boundaries intact.
+        # Strip HTML tags when requested. Replace with space to keep token boundaries intact.
         if normalization_config.remove_html_tags:
             cleaned_text = re.sub(r"<[^>]+>", " ", cleaned_text)
 
@@ -182,37 +179,31 @@ class TextNormalizer:
             cleaned_text = re.sub(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b", " ", cleaned_text)
 
         # Remove tokens that contain digits when that cleaning is enabled.
-        # This targets IDs like REF-8821 and station44 which often do not add
-        # semantic value for clustering.
+        # This targets IDs like REF-8821 and station44.
         if normalization_config.remove_digits:
             cleaned_text = re.sub(r"\b\w*\d\w*\b", " ", cleaned_text)
 
-        # If we are allowed to remove non-alphanumeric characters, do it now.
-        # We keep letters and whitespace only which simplifies tokenization.
+        # Keep letters and spaces only in the semantic view.
         if normalization_config.remove_non_alphanumeric and not normalization_config.preserve_structure_markers:
             cleaned_text = re.sub(r"[^a-z\s]", " ", cleaned_text)
 
-        # Tokenize into word-like tokens. Allow apostrophes to keep contractions.
+        # Tokenize words. Keep apostrophes to avoid splitting contractions.
         token_list = re.findall(r"[a-z']+", cleaned_text)
 
-        # If preserving structure markers, also collect symbols (like '%', '#')
-        # and append them as tokens so they are represented in the output.
+        # Keep symbol tokens in the structural view for anomaly features.
         if normalization_config.preserve_structure_markers:
             structural_token_list = re.findall(r"[^\s\w]", cleaned_text)
             token_list.extend(structural_token_list)
 
-        # Build the stop word set: base English stop words plus any extras.
+        # Merge base stop words with optional project specific stop words.
         stop_word_set = self.base_stop_words | normalization_config.extra_stop_words
-
-        # Filter out stop words to reduce noise and dimensionality.
         filtered_token_list = [single_token for single_token in token_list if single_token not in stop_word_set]
 
-        # Apply morphological normalization to each token (lemmatize or stem).
+        # Normalize morphology to unify token variants.
         normalized_token_list = [
             self._normalize_token(single_token, normalization_config) for single_token in filtered_token_list
         ]
 
-        # Remove any empty tokens and join into a final space-separated string.
         normalized_token_list = [single_token for single_token in normalized_token_list if single_token]
         return " ".join(normalized_token_list)
 
@@ -222,38 +213,25 @@ class TextNormalizer:
         This helper preserves common structural punctuation tokens so that
         anomaly detectors can use them as binary-like features.
 
-        The function first checks for structural tokens, then attempts
-        lemmatization. If WordNet data is missing and a fallback is allowed,
-        it uses Porter stemming. If no normalization is requested the token
-        is returned unchanged.
-
         Args:
             raw_token: The token string to normalize.
-            normalization_config: Config that controls lemmatization/stemming.
+            normalization_config: Config that controls lemmatization and stemming.
 
         Returns:
-            str: The normalized token or the original token if no change applied.
+            str: The normalized token or the original token.
         """
-        # Preserve a list of punctuation symbols as tokens for anomaly detection.
         if raw_token in {"!", "?", ".", ",", ":", ";", "#", "$", "%", "&", "*", "@"}:
             return raw_token
 
-        # If lemmatization is enabled prefer it for linguistic correctness.
         if normalization_config.use_lemmatization:
             try:
-                # Lemmatize without POS tagging for speed; this handles many cases.
                 return self.wordnet_lemmatizer.lemmatize(raw_token)
             except LookupError:
-                # WordNet data might not be installed in some environments.
                 if normalization_config.use_stemming_fallback:
-                    # Use Porter stemmer as a deterministic fallback.
                     return self.porter_stemmer.stem(raw_token)
-                # If no fallback is allowed, return the token unchanged.
                 return raw_token
 
-        # If lemmatization is not used but stemming fallback is enabled, stem.
         if normalization_config.use_stemming_fallback:
             return self.porter_stemmer.stem(raw_token)
 
-        # Otherwise return the original token unchanged.
         return raw_token

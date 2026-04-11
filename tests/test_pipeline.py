@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import csv
+from pathlib import Path
 
 import pandas as pd
 
-from data_mining_assignment.core import AssignmentPipeline, PipelinePaths
+from core import AssignmentPipeline, PipelinePaths
 
 
 def test_pipeline_writes_cluster_and_anomaly_files(tmp_path: Path) -> None:
@@ -138,4 +138,3 @@ def test_pipeline_exports_bag_of_words_with_popular_terms_first(tmp_path: Path) 
     assert first_row[0] == "D1"
     assert first_row[1] == "1"
     assert first_row[2] == "1"
-

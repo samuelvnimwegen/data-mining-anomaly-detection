@@ -7,7 +7,7 @@ import csv
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 
 @dataclass(frozen=True)
@@ -268,4 +268,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
