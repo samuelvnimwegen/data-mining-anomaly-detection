@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from scipy.sparse import spmatrix
 
@@ -22,7 +23,7 @@ from core.data_io import (
     save_processed_text_views,
 )
 from core.paths import PipelinePaths
-from preprocessing import TextNormalizer, TextPreprocessor
+from preprocessing import StructuralFeatureExtractor, TextNormalizer, TextPreprocessor
 
 
 class AssignmentPipeline:
@@ -33,6 +34,7 @@ class AssignmentPipeline:
         preferred_cluster_count: Optional fixed cluster count.
         contamination_ratio: Expected anomaly ratio for Isolation Forest.
         random_seed: Random seed for repeatable model behavior.
+        expected_anomaly_count: Fixed number of anomalies to export.
     """
 
     def __init__(
@@ -41,6 +43,7 @@ class AssignmentPipeline:
         preferred_cluster_count: int | None = None,
         contamination_ratio: float = 0.02,
         random_seed: int = 42,
+        expected_anomaly_count: int = 50,
     ) -> None:
         """Sets up all pipeline components.
 
@@ -49,9 +52,11 @@ class AssignmentPipeline:
             preferred_cluster_count: Optional fixed cluster count.
             contamination_ratio: Expected anomaly ratio for Isolation Forest.
             random_seed: Random seed for repeatable model behavior.
+            expected_anomaly_count: Fixed number of anomalies to export.
         """
         self.pipeline_paths = pipeline_paths
         self.preferred_cluster_count = preferred_cluster_count
+        self.expected_anomaly_count = expected_anomaly_count
 
         self.dataset = ArticleDataset(input_csv_path=self.pipeline_paths.input_articles_csv)
         self.normalizer = TextNormalizer()
@@ -75,6 +80,8 @@ class AssignmentPipeline:
             random_seed=random_seed,
         )
 
+        self.structural_feature_extractor = StructuralFeatureExtractor()
+
         self.clusterer = TextClusterer(random_seed=random_seed)
         self.anomaly_detector = TextAnomalyDetector(
             contamination_ratio=contamination_ratio,
@@ -92,6 +99,7 @@ class AssignmentPipeline:
         preferred_cluster_count: int | None = None,
         contamination_ratio: float = 0.02,
         random_seed: int = 42,
+        expected_anomaly_count: int = 50,
     ) -> AssignmentPipeline:
         """Creates a pipeline from a repository root path.
 
@@ -100,6 +108,7 @@ class AssignmentPipeline:
             preferred_cluster_count: Optional fixed cluster count.
             contamination_ratio: Expected anomaly ratio for Isolation Forest.
             random_seed: Random seed for repeatable model behavior.
+            expected_anomaly_count: Fixed number of anomalies to export.
 
         Returns:
             AssignmentPipeline: Configured pipeline object.
@@ -109,6 +118,7 @@ class AssignmentPipeline:
             preferred_cluster_count=preferred_cluster_count,
             contamination_ratio=contamination_ratio,
             random_seed=random_seed,
+            expected_anomaly_count=expected_anomaly_count,
         )
 
     def run_clustering(self) -> pd.DataFrame:
@@ -149,6 +159,7 @@ class AssignmentPipeline:
             document_ids=articles_data_frame["doc_id"].tolist(),
             anomaly_mask=anomaly_mask,
             anomaly_scores=anomaly_scores,
+            expected_anomaly_count=self.expected_anomaly_count,
         )
         save_anomalies(anomaly_output_data_frame, self.pipeline_paths.output_anomalies_csv)
         return anomaly_output_data_frame
@@ -224,6 +235,18 @@ class AssignmentPipeline:
         self._cached_anomaly_tfidf_matrix = self.anomaly_preprocessor.fit_transform(
             normalized_text_bundle.anomaly_texts
         )
+
+        if isinstance(self._cached_anomaly_tfidf_matrix, spmatrix):
+            dense_anomaly_matrix = self._cached_anomaly_tfidf_matrix.toarray()
+        else:
+            dense_anomaly_matrix = np.asarray(self._cached_anomaly_tfidf_matrix, dtype=np.float64)
+
+        structural_feature_matrix = self.structural_feature_extractor.transform(
+            self._cached_articles_data_frame["text"].astype(str).tolist()
+        )
+        # Merge semantic and structural views for blind anomaly scoring.
+        self._cached_anomaly_tfidf_matrix = np.hstack([dense_anomaly_matrix, structural_feature_matrix])
+
         self._save_processed_features(
             clustering_texts=normalized_text_bundle.clustering_texts,
             anomaly_texts=normalized_text_bundle.anomaly_texts,

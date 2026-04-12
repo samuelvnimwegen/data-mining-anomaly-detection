@@ -32,11 +32,11 @@ class TextAnomalyDetector:
             random_state=self.random_seed,
         )
 
-    def run_detection(self, tfidf_matrix: spmatrix) -> tuple[np.ndarray, np.ndarray]:
+    def run_detection(self, tfidf_matrix: spmatrix | np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Runs anomaly detection on vectorized text.
 
         Args:
-            tfidf_matrix: Sparse TF-IDF matrix.
+            tfidf_matrix: Sparse or dense feature matrix.
 
         Returns:
             tuple[np.ndarray, np.ndarray]: Anomaly mask and anomaly scores.
@@ -55,6 +55,7 @@ def create_anomaly_output(
     document_ids: Sequence[str],
     anomaly_mask: np.ndarray,
     anomaly_scores: np.ndarray,
+    expected_anomaly_count: int | None = None,
 ) -> pd.DataFrame:
     """Builds the anomaly output DataFrame.
 
@@ -62,6 +63,7 @@ def create_anomaly_output(
         document_ids: Ordered document ids.
         anomaly_mask: Boolean mask where True marks anomalies.
         anomaly_scores: Isolation Forest score per document.
+        expected_anomaly_count: Optional fixed number of rows to output.
 
     Returns:
         pd.DataFrame: DataFrame with `anomaly` rank and `doc_id`.
@@ -73,11 +75,19 @@ def create_anomaly_output(
             "score": anomaly_scores,
         }
     )
-    anomaly_only_rows = anomaly_rows[anomaly_rows["is_anomaly"]].copy()
 
-    if anomaly_only_rows.empty:
+    # Sort by score first so deterministic top-k selection is possible.
+    ranked_rows = anomaly_rows.sort_values("score", ascending=True).reset_index(drop=True)
+
+    if expected_anomaly_count is not None:
+        selected_row_count = max(0, min(expected_anomaly_count, len(ranked_rows)))
+        selected_rows = ranked_rows.head(selected_row_count).copy()
+    else:
+        selected_rows = ranked_rows[ranked_rows["is_anomaly"]].copy()
+
+    if selected_rows.empty:
         return pd.DataFrame(columns=["anomaly", "doc_id"])
 
-    anomaly_only_rows = anomaly_only_rows.sort_values("score", ascending=True).reset_index(drop=True)
-    anomaly_only_rows["anomaly"] = anomaly_only_rows.index + 1
-    return anomaly_only_rows[["anomaly", "doc_id"]]
+    selected_rows = selected_rows.reset_index(drop=True)
+    selected_rows["anomaly"] = selected_rows.index + 1
+    return selected_rows[["anomaly", "doc_id"]]

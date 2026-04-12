@@ -108,8 +108,11 @@ class TextNormalizer:
             extra_stop_words={"nbsp", "http", "https", "www"},
         )
 
-        # Default anomaly config: preserve structural markers for outlier features.
+        # Default anomaly config: keep structural noise for outlier detection.
         self.anomaly_config = anomaly_config or NormalizationConfig(
+            remove_html_tags=False,
+            remove_urls=False,
+            remove_emails=False,
             preserve_structure_markers=True,
             remove_non_alphanumeric=False,
             remove_digits=False,
@@ -165,6 +168,10 @@ class TextNormalizer:
         """
         # Lowercase the whole document to canonicalize casing.
         cleaned_text = raw_text.lower()
+
+        # Expand common contractions before cleanup.
+        # This avoids tokens like "don't" turning into "don".
+        cleaned_text = self._expand_simple_contractions(cleaned_text)
 
         # Strip HTML tags when requested. Replace with space to keep token boundaries intact.
         if normalization_config.remove_html_tags:
@@ -227,11 +234,57 @@ class TextNormalizer:
             try:
                 return self.wordnet_lemmatizer.lemmatize(raw_token)
             except LookupError:
+                # Fall back to a tiny rule set when NLTK data is not installed.
                 if normalization_config.use_stemming_fallback:
                     return self.porter_stemmer.stem(raw_token)
-                return raw_token
+                return self._simple_plural_fallback_lemma(raw_token)
 
         if normalization_config.use_stemming_fallback:
             return self.porter_stemmer.stem(raw_token)
 
         return raw_token
+
+    def _expand_simple_contractions(self, text_value: str) -> str:
+        """Expands frequent English contractions.
+
+        Args:
+            text_value: Lowercased raw text.
+
+        Returns:
+            str: Text where common contractions are expanded.
+        """
+        # Keep this map small and stable for assignment text.
+        contraction_map = {
+            "can't": "can not",
+            "won't": "will not",
+            "n't": " not",
+            "'re": " are",
+            "'ve": " have",
+            "'ll": " will",
+            "'d": " would",
+            "'m": " am",
+            "'s": " is",
+        }
+
+        expanded_text = text_value
+        for contraction_text, expanded_value in contraction_map.items():
+            expanded_text = expanded_text.replace(contraction_text, expanded_value)
+        return expanded_text
+
+    def _simple_plural_fallback_lemma(self, raw_token: str) -> str:
+        """Applies a small plural fallback when WordNet is missing.
+
+        Args:
+            raw_token: Token to normalize.
+
+        Returns:
+            str: Token with simple plural reduction when applicable.
+        """
+        if raw_token.endswith("ies") and len(raw_token) > 4:
+            return raw_token[:-3] + "y"
+
+        if raw_token.endswith("s") and not raw_token.endswith("ss") and len(raw_token) > 3:
+            return raw_token[:-1]
+
+        return raw_token
+
