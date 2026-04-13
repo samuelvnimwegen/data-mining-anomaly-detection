@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from exploration import (
+    attach_original_text_by_doc_id,
     build_anomaly_candidate_table,
     compare_normalization_variants,
     sample_top_anomaly_texts,
@@ -79,3 +80,53 @@ def test_summarize_corpus_supports_dataclass_asdict_conversion() -> None:
 
     assert "document_count" in summary_as_dictionary
     assert summary_as_dictionary["document_count"] == 2
+
+
+def test_attach_original_text_by_doc_id_adds_text_column() -> None:
+    """Checks helper appends aligned text column by doc_id."""
+    anomaly_table = build_anomaly_candidate_table(
+        document_ids=["DOC_001", "DOC_002"],
+        anomaly_scores=[-0.2, -0.5],
+    )
+
+    enriched_table = attach_original_text_by_doc_id(
+        anomaly_table=anomaly_table,
+        document_ids=["DOC_001", "DOC_002"],
+        raw_texts=["normal line", "outlier line"],
+    )
+
+    assert "text" in enriched_table.columns
+    assert enriched_table.iloc[0]["doc_id"] == "DOC_002"
+    assert enriched_table.iloc[0]["text"] == "outlier line"
+
+
+def test_attach_original_text_by_doc_id_validates_input() -> None:
+    """Checks helper raises for missing doc_id or length mismatch."""
+    anomaly_table_without_doc_id = build_anomaly_candidate_table(
+        document_ids=["DOC_001"],
+        anomaly_scores=[-0.2],
+    )[["score", "anomaly_rank"]]
+
+    try:
+        attach_original_text_by_doc_id(
+            anomaly_table=anomaly_table_without_doc_id,
+            document_ids=["DOC_001"],
+            raw_texts=["text"],
+        )
+        assert False, "Expected KeyError for missing doc_id column."
+    except KeyError:
+        assert True
+
+    try:
+        attach_original_text_by_doc_id(
+            anomaly_table=build_anomaly_candidate_table(
+                document_ids=["DOC_001"],
+                anomaly_scores=[-0.2],
+            ),
+            document_ids=["DOC_001", "DOC_002"],
+            raw_texts=["only one text"],
+        )
+        assert False, "Expected ValueError for mismatched lengths."
+    except ValueError:
+        assert True
+

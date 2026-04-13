@@ -206,3 +206,46 @@ def sample_top_anomaly_texts(
         for document_id in top_anomaly_rows["doc_id"].tolist()
     ]
     return top_anomaly_rows
+
+
+def attach_original_text_by_doc_id(
+    anomaly_table: pd.DataFrame,
+    document_ids: list[str],
+    raw_texts: list[str],
+    output_text_column_name: str = "text",
+) -> pd.DataFrame:
+    """Adds original raw text to a table that contains a doc_id column.
+
+    This helper keeps anomaly export logic consistent across notebooks. It maps
+    each `doc_id` row back to the raw text from the original dataset and stores
+    it in a dedicated output column.
+
+    Args:
+        anomaly_table: Input table that must include a `doc_id` column.
+        document_ids: Ordered list of document identifiers from the dataset.
+        raw_texts: Raw text values aligned with `document_ids`.
+        output_text_column_name: Name of the output text column.
+
+    Returns:
+        pd.DataFrame: Copy of the input table with an added text column.
+
+    Raises:
+        ValueError: If input lists are not aligned in length.
+        KeyError: If `doc_id` is missing in the input table.
+    """
+    if len(document_ids) != len(raw_texts):
+        raise ValueError("document_ids and raw_texts must have the same length.")
+
+    if "doc_id" not in anomaly_table.columns:
+        raise KeyError("Input table must include a doc_id column.")
+
+    # Build a simple lookup so each exported row can include original text.
+    raw_text_lookup_by_doc_id = {document_id: text for document_id, text in zip(document_ids, raw_texts, strict=False)}
+
+    enriched_anomaly_table = anomaly_table.copy()
+    enriched_anomaly_table[output_text_column_name] = [
+        str(raw_text_lookup_by_doc_id.get(document_id, ""))
+        for document_id in enriched_anomaly_table["doc_id"].astype(str).tolist()
+    ]
+    return enriched_anomaly_table
+
