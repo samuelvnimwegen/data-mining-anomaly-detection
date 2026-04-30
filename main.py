@@ -17,15 +17,33 @@ from core import AssignmentPipeline  # noqa: E402
 def main() -> None:
     """Runs selected assignment tasks.
 
-    Use one-line comments to toggle tasks.
+    Comment or uncomment individual lines to run specific tasks.
+
+    Clustering methods:
+        "kmeans"       — K-Means with silhouette-based cluster count selection.
+        "agglomerative"— Ward-linkage hierarchical clustering (SVD-reduced).
+
+    Anomaly detection:
+        use_ensemble=False — Isolation Forest on structural features (default,
+                             best single-method performance).
+        use_ensemble=True  — Rank-average ensemble of Isolation Forest, LOF,
+                             and kNN on structural features.
     """
     assignment_pipeline = AssignmentPipeline.from_project_root(project_root_path=PROJECT_ROOT_PATH)
 
-    # Comment or uncomment these lines to run single tasks.
-    assignment_pipeline.run_clustering()
-    assignment_pipeline.run_anomaly_detection()
+    # Task 2: clustering.
+    assignment_pipeline.run_clustering(clustering_method="kmeans")
+    # assignment_pipeline.run_clustering(clustering_method="agglomerative")
+
+    # Task 3: anomaly detection — Isolation Forest on structural features.
+    assignment_pipeline.run_anomaly_detection(use_ensemble=False)
+    # assignment_pipeline.run_anomaly_detection(use_ensemble=True)  # ensemble
+
+    # Task 1: bag-of-words export.
     assignment_pipeline.run_bag_of_words_export()
-    # assignment_pipeline.run_full()
+
+    # Run everything in one call (uncomment to use).
+    # assignment_pipeline.run_full(clustering_method="kmeans", use_ensemble=False)
 
 
 if __name__ == "__main__":

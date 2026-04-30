@@ -8,6 +8,8 @@ __pycache__/
 # Project files
 data/
 report.md
+*.md
+*.pdf
 
 # C extensions
 *.so

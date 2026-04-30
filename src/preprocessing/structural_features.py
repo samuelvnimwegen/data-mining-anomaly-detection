@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import math
 import re
 from dataclasses import dataclass
@@ -64,6 +65,8 @@ class StructuralFeatureExtractor:
         repeated_token_ratio = self._compute_repeated_token_ratio(token_list)
         max_token_run = self._compute_max_token_run(token_list)
         lexical_entropy = self._compute_lexical_entropy(token_list)
+        bigram_type_token_ratio = self._compute_bigram_type_token_ratio(token_list)
+        compression_ratio = self._compute_compression_ratio(text_value)
 
         average_token_length = float(sum(len(token) for token in token_list)) / token_count
         type_token_ratio = unique_token_count / token_count
@@ -84,6 +87,8 @@ class StructuralFeatureExtractor:
             html_tag_count,
             mixed_alnum_token_count / token_count,
             placeholder_count / token_count,
+            bigram_type_token_ratio,
+            compression_ratio,
         ]
 
     def get_feature_names(self) -> list[str]:
@@ -108,6 +113,8 @@ class StructuralFeatureExtractor:
             "html_tag_count",
             "mixed_alnum_token_ratio",
             "placeholder_token_ratio",
+            "bigram_type_token_ratio",
+            "compression_ratio",
         ]
 
     def _compute_repeated_token_ratio(self, token_list: list[str]) -> float:
@@ -175,3 +182,40 @@ class StructuralFeatureExtractor:
         if max_entropy_value <= 0.0:
             return 0.0
         return float(entropy_value / max_entropy_value)
+
+    def _compute_bigram_type_token_ratio(self, token_list: list[str]) -> float:
+        """Calculates the ratio of unique bigrams to total bigrams.
+
+        A low value indicates heavy phrase repetition, which is a strong
+        signal for templated or spam-like documents.
+
+        Args:
+            token_list: Lowercased word tokens.
+
+        Returns:
+            float: Bigram type-token ratio in [0, 1].
+        """
+        if len(token_list) < 2:
+            return 1.0
+
+        bigrams = [token_list[index] + " " + token_list[index + 1] for index in range(len(token_list) - 1)]
+        return float(len(set(bigrams))) / float(len(bigrams))
+
+    def _compute_compression_ratio(self, raw_text: str) -> float:
+        """Calculates the gzip compression ratio of the raw text.
+
+        Repetitive documents compress to a much smaller fraction of their
+        original size than diverse natural-language documents, making this
+        a parameter-free anomaly signal.
+
+        Args:
+            raw_text: Original document text before any normalization.
+
+        Returns:
+            float: Ratio of compressed size to raw UTF-8 size in (0, 1].
+        """
+        encoded_text = raw_text.encode("utf-8")
+        if not encoded_text:
+            return 1.0
+        compressed_text = gzip.compress(encoded_text, compresslevel=6)
+        return float(len(compressed_text)) / float(len(encoded_text))

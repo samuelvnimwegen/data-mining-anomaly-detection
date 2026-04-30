@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import spmatrix
 
-from anomaly_detection import TextAnomalyDetector, create_anomaly_output
-from clustering import TextClusterer, create_cluster_output
+from anomaly_detection import EnsembleAnomalyDetector, TextAnomalyDetector, create_anomaly_output
+from clustering import AgglomerativeTextClusterer, TextClusterer, create_cluster_output
 from core.data_io import (
     ArticleDataset,
     load_processed_dense_matrix,
@@ -29,10 +29,15 @@ from preprocessing import StructuralFeatureExtractor, TextNormalizer, TextPrepro
 class AssignmentPipeline:
     """Orchestrates preprocessing, clustering, and anomaly detection.
 
+    Clustering supports two methods: ``kmeans`` (default) and
+    ``agglomerative``.  Anomaly detection uses an ensemble of Isolation
+    Forest, LOF, and kNN by default; the plain Isolation Forest detector is
+    also available as ``self.anomaly_detector`` for comparison runs.
+
     Args:
         pipeline_paths: Input and output paths.
         preferred_cluster_count: Optional fixed cluster count.
-        contamination_ratio: Expected anomaly ratio for Isolation Forest.
+        contamination_ratio: Expected anomaly ratio for all detectors.
         random_seed: Random seed for repeatable model behavior.
         expected_anomaly_count: Fixed number of anomalies to export.
     """
@@ -50,7 +55,7 @@ class AssignmentPipeline:
         Args:
             pipeline_paths: Input and output paths.
             preferred_cluster_count: Optional fixed cluster count.
-            contamination_ratio: Expected anomaly ratio for Isolation Forest.
+            contamination_ratio: Expected anomaly ratio for all detectors.
             random_seed: Random seed for repeatable model behavior.
             expected_anomaly_count: Fixed number of anomalies to export.
         """
@@ -83,7 +88,12 @@ class AssignmentPipeline:
         self.structural_feature_extractor = StructuralFeatureExtractor()
 
         self.clusterer = TextClusterer(random_seed=random_seed)
+        self.agglomerative_clusterer = AgglomerativeTextClusterer(random_seed=random_seed)
         self.anomaly_detector = TextAnomalyDetector(
+            contamination_ratio=contamination_ratio,
+            random_seed=random_seed,
+        )
+        self.ensemble_detector = EnsembleAnomalyDetector(
             contamination_ratio=contamination_ratio,
             random_seed=random_seed,
         )
@@ -121,21 +131,38 @@ class AssignmentPipeline:
             expected_anomaly_count=expected_anomaly_count,
         )
 
-    def run_clustering(self) -> pd.DataFrame:
+    def run_clustering(self, clustering_method: str = "kmeans") -> pd.DataFrame:
         """Runs clustering and saves `data/results/clusters.csv`.
+
+        Args:
+            clustering_method: Algorithm to use.  Either ``"kmeans"``
+                (default) for K-Means or ``"agglomerative"`` for Ward-linkage
+                hierarchical clustering.
 
         Returns:
             pd.DataFrame: Cluster output rows.
+
+        Raises:
+            ValueError: If ``clustering_method`` is not recognised.
         """
         self._ensure_features_ready()
         assert self._cached_articles_data_frame is not None
         assert self._cached_clustering_tfidf_matrix is not None
         articles_data_frame: pd.DataFrame = self._cached_articles_data_frame
 
-        clustering_result = self.clusterer.run_clustering(
-            tfidf_matrix=self._cached_clustering_tfidf_matrix,
-            preferred_cluster_count=self.preferred_cluster_count,
-        )
+        if clustering_method == "agglomerative":
+            clustering_result = self.agglomerative_clusterer.run_clustering(
+                tfidf_matrix=self._cached_clustering_tfidf_matrix,
+                preferred_cluster_count=self.preferred_cluster_count,
+            )
+        elif clustering_method == "kmeans":
+            clustering_result = self.clusterer.run_clustering(
+                tfidf_matrix=self._cached_clustering_tfidf_matrix,
+                preferred_cluster_count=self.preferred_cluster_count,
+            )
+        else:
+            raise ValueError(f"Unknown clustering_method '{clustering_method}'. Use 'kmeans' or 'agglomerative'.")
+
         cluster_output_data_frame = create_cluster_output(
             document_ids=articles_data_frame["doc_id"].tolist(),
             labels=clustering_result.labels,
@@ -143,8 +170,24 @@ class AssignmentPipeline:
         save_clusters(cluster_output_data_frame, self.pipeline_paths.output_clusters_csv)
         return cluster_output_data_frame
 
-    def run_anomaly_detection(self) -> pd.DataFrame:
+    def run_anomaly_detection(self, use_ensemble: bool = False) -> pd.DataFrame:
         """Runs anomaly detection and saves `data/results/anomalies.csv`.
+
+        All detectors operate on the structural feature block (the last
+        ``n_structural`` columns of the combined feature matrix) rather than
+        the full LSA + structural matrix.  Empirically, structural features
+        such as bigram type-token ratio and compression ratio provide the
+        clearest anomaly signal for this corpus, while the high-dimensional
+        LSA block dilutes the separation.
+
+        When ``use_ensemble=False`` (default) only Isolation Forest is used,
+        which gives the strongest individual performance on structural
+        features.  When ``use_ensemble=True`` the rank-average ensemble of
+        Isolation Forest, LOF, and kNN is used instead.
+
+        Args:
+            use_ensemble: When ``False`` (default) only Isolation Forest runs.
+                When ``True`` the three-detector ensemble runs.
 
         Returns:
             pd.DataFrame: Anomaly output rows.
@@ -154,7 +197,12 @@ class AssignmentPipeline:
         assert self._cached_anomaly_tfidf_matrix is not None
         articles_data_frame: pd.DataFrame = self._cached_articles_data_frame
 
-        anomaly_mask, anomaly_scores = self.anomaly_detector.run_detection(self._cached_anomaly_tfidf_matrix)
+        # Structural features are always in the last N columns of the combined matrix.
+        n_structural = len(self.structural_feature_extractor.get_feature_names())
+        structural_matrix = self._cached_anomaly_tfidf_matrix[:, -n_structural:]
+
+        active_detector = self.ensemble_detector if use_ensemble else self.anomaly_detector
+        anomaly_mask, anomaly_scores = active_detector.run_detection(structural_matrix)
         anomaly_output_data_frame = create_anomaly_output(
             document_ids=articles_data_frame["doc_id"].tolist(),
             anomaly_mask=anomaly_mask,
@@ -205,14 +253,24 @@ class AssignmentPipeline:
             }
         )
 
-    def run_full(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def run_full(
+        self,
+        clustering_method: str = "kmeans",
+        use_ensemble: bool = False,
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Runs clustering and anomaly detection in one call.
+
+        Args:
+            clustering_method: Algorithm for clustering.  Either ``"kmeans"``
+                or ``"agglomerative"``.
+            use_ensemble: When ``True`` (default) the ensemble anomaly
+                detector is used instead of Isolation Forest alone.
 
         Returns:
             tuple[pd.DataFrame, pd.DataFrame]: Cluster and anomaly outputs.
         """
-        cluster_output_data_frame = self.run_clustering()
-        anomaly_output_data_frame = self.run_anomaly_detection()
+        cluster_output_data_frame = self.run_clustering(clustering_method=clustering_method)
+        anomaly_output_data_frame = self.run_anomaly_detection(use_ensemble=use_ensemble)
         return cluster_output_data_frame, anomaly_output_data_frame
 
     def _ensure_features_ready(self) -> None:
