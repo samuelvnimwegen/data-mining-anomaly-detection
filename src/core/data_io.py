@@ -228,8 +228,10 @@ def save_bag_of_words_matrix_csv(
 
     bag_of_words_csr_matrix = csr_matrix(bag_of_words_matrix)
 
-    # Sort columns by total term count. This keeps the most common terms first.
+    # Sort columns by total term count so the most common terms appear first.
     term_popularity = np.asarray(bag_of_words_csr_matrix.sum(axis=0)).ravel()
+    # np.lexsort sorts by the last key first: primarily by -term_popularity (most
+    # popular first), then alphabetically by feature name to break ties consistently.
     sorted_column_indices = np.lexsort((np.array(feature_names), -term_popularity))
 
     sorted_feature_names = [feature_names[column_index] for column_index in sorted_column_indices]

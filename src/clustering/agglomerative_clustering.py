@@ -86,6 +86,7 @@ class AgglomerativeTextClusterer:
         if isinstance(tfidf_matrix, np.ndarray):
             return tfidf_matrix
 
+        # TruncatedSVD requires n_components < n_features, so cap at shape[1]-1.
         reduced_dimension = min(self.svd_dimension, max(1, tfidf_matrix.shape[1] - 1))
         projector = TruncatedSVD(n_components=reduced_dimension, random_state=self.random_seed)
         return projector.fit_transform(tfidf_matrix)

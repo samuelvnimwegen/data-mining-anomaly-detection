@@ -39,4 +39,3 @@ def test_create_anomaly_output_falls_back_to_mask_when_count_is_none() -> None:
 
     assert output_data_frame["doc_id"].tolist() == ["B"]
     assert output_data_frame["anomaly"].tolist() == [1]
-

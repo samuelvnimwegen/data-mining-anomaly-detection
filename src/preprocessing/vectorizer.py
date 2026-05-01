@@ -82,7 +82,8 @@ class TextPreprocessor:
 
         assert self.dense_projector is not None
 
-        # This keeps dense size valid for very small datasets.
+        # TruncatedSVD requires n_components < n_features, so cap at shape[1]-1.
+        # The max(1, ...) guard prevents zero components on single-feature inputs.
         reduced_dimension = min(self.dense_embedding_dimension, max(1, sparse_matrix.shape[1] - 1))
         self.dense_projector = TruncatedSVD(
             n_components=reduced_dimension,

@@ -24,4 +24,3 @@ def test_structural_feature_extractor_detects_urls_and_html() -> None:
 
     assert matrix[0, url_index] >= 1.0
     assert matrix[0, html_index] >= 1.0
-

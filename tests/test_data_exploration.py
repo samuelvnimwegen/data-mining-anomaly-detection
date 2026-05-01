@@ -129,4 +129,3 @@ def test_attach_original_text_by_doc_id_validates_input() -> None:
         assert False, "Expected ValueError for mismatched lengths."
     except ValueError:
         assert True
-

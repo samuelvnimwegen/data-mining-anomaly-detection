@@ -161,9 +161,7 @@ class AssignmentPipeline:
             emb_path = self.pipeline_paths.processed_sentence_embeddings_npy
             if emb_path is None or not emb_path.exists():
                 raise FileNotFoundError(
-                    "Sentence embedding cache not found. "
-                    "Run notebook 09 first to generate "
-                    f"'{emb_path}'."
+                    f"Sentence embedding cache not found. Run notebook 09 first to generate '{emb_path}'."
                 )
             if self._cached_articles_data_frame is None:
                 self._cached_articles_data_frame = self.dataset.load_articles()

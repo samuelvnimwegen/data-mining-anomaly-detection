@@ -41,7 +41,10 @@ unfixable = []
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
-"notebooks/*.ipynb" = ["F401"]
+# E402: import-not-at-top is expected in notebooks because sys.path is set up first.
+# E501: data cells in notebooks naturally produce lines longer than 120 chars.
+# D: docstrings are not required for helper functions defined inside notebook cells.
+"notebooks/*.ipynb" = ["F401", "E402", "E501", "D"]
 
 [tool.ruff.format]
 quote-style = "double"

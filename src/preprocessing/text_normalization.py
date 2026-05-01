@@ -287,4 +287,3 @@ class TextNormalizer:
             return raw_token[:-1]
 
         return raw_token
-

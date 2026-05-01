@@ -248,4 +248,3 @@ def attach_original_text_by_doc_id(
         for document_id in enriched_anomaly_table["doc_id"].astype(str).tolist()
     ]
     return enriched_anomaly_table
-

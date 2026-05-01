@@ -59,6 +59,8 @@ class StructuralFeatureExtractor:
         email_count = float(len(re.findall(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b", text_value)))
         html_tag_count = float(len(re.findall(r"<[^>]+>", text_value)))
 
+        # Lookaheads require the token to contain at least one letter AND one digit
+        # (e.g. "B2B", "ref123"). Tokens with only letters or only digits are excluded.
         mixed_alnum_token_count = float(len(re.findall(r"\b(?=\w*[a-zA-Z])(?=\w*\d)\w+\b", text_value)))
         placeholder_count = float(len(re.findall(r"\{[^}]+}", text_value)))
 
@@ -176,8 +178,11 @@ class StructuralFeatureExtractor:
             token_counter[token] = token_counter.get(token, 0) + 1
 
         probabilities = [count / len(token_list) for count in token_counter.values()]
+        # eps prevents log(0) when one token has probability 1.
         entropy_value = -sum(probability * math.log(probability + self.eps) for probability in probabilities)
 
+        # Divide by log(n_unique_tokens), the maximum possible entropy for this vocabulary,
+        # to normalise the result to [0, 1]. A score near 0 means one token dominates.
         max_entropy_value = math.log(len(token_counter) + self.eps)
         if max_entropy_value <= 0.0:
             return 0.0

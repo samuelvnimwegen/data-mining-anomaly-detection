@@ -89,9 +89,13 @@ class EnsembleAnomalyDetector:
         normalised_arrays: list[np.ndarray] = []
 
         for scores in score_arrays:
+            # argsort gives the indices that would sort the array from lowest to highest.
+            # Placing 0..n-1 back at those positions is an inverse-argsort that converts
+            # each score to its rank, so the document with the lowest score gets rank 0.
             ascending_order = np.argsort(scores)
             ranks = np.empty(document_count, dtype=float)
             ranks[ascending_order] = np.arange(document_count, dtype=float)
+            # Divide by (n-1) so ranks are in [0, 1] regardless of corpus size.
             normalised_arrays.append(ranks / max(document_count - 1, 1))
 
         return np.mean(normalised_arrays, axis=0)
