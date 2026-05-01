@@ -32,7 +32,12 @@ def main() -> None:
     assignment_pipeline = AssignmentPipeline.from_project_root(project_root_path=PROJECT_ROOT_PATH)
 
     # Task 2: clustering.
-    assignment_pipeline.run_clustering(clustering_method="kmeans")
+    # Option A — sentence embeddings (submitted result, silhouette 0.062).
+    #   Requires notebook 09 to have been run first to cache the embeddings.
+    assignment_pipeline.run_clustering(use_embeddings=True)
+    # Option B — TF-IDF K-Means (baseline).
+    # assignment_pipeline.run_clustering(clustering_method="kmeans")
+    # Option C — TF-IDF Agglomerative (best TF-IDF silhouette).
     # assignment_pipeline.run_clustering(clustering_method="agglomerative")
 
     # Task 3: anomaly detection — Isolation Forest on structural features.
@@ -43,7 +48,7 @@ def main() -> None:
     assignment_pipeline.run_bag_of_words_export()
 
     # Run everything in one call (uncomment to use).
-    # assignment_pipeline.run_full(clustering_method="kmeans", use_ensemble=False)
+    # assignment_pipeline.run_full(use_embeddings=True, use_ensemble=False)
 
 
 if __name__ == "__main__":

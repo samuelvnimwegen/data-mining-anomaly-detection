@@ -69,6 +69,28 @@ class TextClusterer:
         predicted_labels = clustering_model.fit_predict(tfidf_matrix)
         return ClusteringResult(labels=predicted_labels, selected_cluster_count=selected_cluster_count)
 
+    def run_clustering_on_embeddings(
+        self,
+        embeddings: np.ndarray,
+        n_clusters: int = 8,
+    ) -> ClusteringResult:
+        """Runs K-Means on dense sentence embeddings.
+
+        Args:
+            embeddings: Dense embedding matrix of shape ``(n_docs, n_dims)``.
+            n_clusters: Number of clusters (fixed; no silhouette selection).
+
+        Returns:
+            ClusteringResult: Labels and selected cluster count.
+        """
+        clustering_model = KMeans(
+            n_clusters=n_clusters,
+            n_init="auto",
+            random_state=self.random_seed,
+        )
+        predicted_labels = clustering_model.fit_predict(embeddings)
+        return ClusteringResult(labels=predicted_labels, selected_cluster_count=n_clusters)
+
     def _select_cluster_count(self, tfidf_matrix: spmatrix, candidate_cluster_counts: Sequence[int]) -> int:
         """Selects the best cluster count using silhouette score.
 

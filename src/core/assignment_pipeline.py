@@ -131,40 +131,63 @@ class AssignmentPipeline:
             expected_anomaly_count=expected_anomaly_count,
         )
 
-    def run_clustering(self, clustering_method: str = "kmeans") -> pd.DataFrame:
+    def run_clustering(
+        self,
+        clustering_method: str = "kmeans",
+        use_embeddings: bool = False,
+    ) -> pd.DataFrame:
         """Runs clustering and saves `data/results/clusters.csv`.
 
         Args:
             clustering_method: Algorithm to use.  Either ``"kmeans"``
                 (default) for K-Means or ``"agglomerative"`` for Ward-linkage
-                hierarchical clustering.
+                hierarchical clustering.  Ignored when ``use_embeddings=True``
+                (embedding clustering always uses K-Means k=8).
+            use_embeddings: When ``True``, cluster on cached sentence
+                embeddings (``data/processed/sentence_embeddings.npy``)
+                instead of TF-IDF vectors.  Produces the submitted result
+                (silhouette 0.062).  Requires notebook 09 to have been run
+                first to generate the embedding cache.
 
         Returns:
             pd.DataFrame: Cluster output rows.
 
         Raises:
             ValueError: If ``clustering_method`` is not recognised.
+            FileNotFoundError: If ``use_embeddings=True`` but the embedding
+                cache does not exist.
         """
-        self._ensure_features_ready()
-        assert self._cached_articles_data_frame is not None
-        assert self._cached_clustering_tfidf_matrix is not None
-        articles_data_frame: pd.DataFrame = self._cached_articles_data_frame
-
-        if clustering_method == "agglomerative":
-            clustering_result = self.agglomerative_clusterer.run_clustering(
-                tfidf_matrix=self._cached_clustering_tfidf_matrix,
-                preferred_cluster_count=self.preferred_cluster_count,
-            )
-        elif clustering_method == "kmeans":
-            clustering_result = self.clusterer.run_clustering(
-                tfidf_matrix=self._cached_clustering_tfidf_matrix,
-                preferred_cluster_count=self.preferred_cluster_count,
-            )
+        if use_embeddings:
+            emb_path = self.pipeline_paths.processed_sentence_embeddings_npy
+            if emb_path is None or not emb_path.exists():
+                raise FileNotFoundError(
+                    "Sentence embedding cache not found. "
+                    "Run notebook 09 first to generate "
+                    f"'{emb_path}'."
+                )
+            if self._cached_articles_data_frame is None:
+                self._cached_articles_data_frame = self.dataset.load_articles()
+            embeddings = np.load(emb_path)
+            clustering_result = self.clusterer.run_clustering_on_embeddings(embeddings, n_clusters=8)
         else:
-            raise ValueError(f"Unknown clustering_method '{clustering_method}'. Use 'kmeans' or 'agglomerative'.")
+            self._ensure_features_ready()
+            assert self._cached_clustering_tfidf_matrix is not None
+            if clustering_method == "agglomerative":
+                clustering_result = self.agglomerative_clusterer.run_clustering(
+                    tfidf_matrix=self._cached_clustering_tfidf_matrix,
+                    preferred_cluster_count=self.preferred_cluster_count,
+                )
+            elif clustering_method == "kmeans":
+                clustering_result = self.clusterer.run_clustering(
+                    tfidf_matrix=self._cached_clustering_tfidf_matrix,
+                    preferred_cluster_count=self.preferred_cluster_count,
+                )
+            else:
+                raise ValueError(f"Unknown clustering_method '{clustering_method}'. Use 'kmeans' or 'agglomerative'.")
 
+        assert self._cached_articles_data_frame is not None
         cluster_output_data_frame = create_cluster_output(
-            document_ids=articles_data_frame["doc_id"].tolist(),
+            document_ids=self._cached_articles_data_frame["doc_id"].tolist(),
             labels=clustering_result.labels,
         )
         save_clusters(cluster_output_data_frame, self.pipeline_paths.output_clusters_csv)
@@ -257,19 +280,25 @@ class AssignmentPipeline:
         self,
         clustering_method: str = "kmeans",
         use_ensemble: bool = False,
+        use_embeddings: bool = False,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Runs clustering and anomaly detection in one call.
 
         Args:
             clustering_method: Algorithm for clustering.  Either ``"kmeans"``
                 or ``"agglomerative"``.
-            use_ensemble: When ``True`` (default) the ensemble anomaly
-                detector is used instead of Isolation Forest alone.
+            use_ensemble: When ``True`` the ensemble anomaly detector is used
+                instead of Isolation Forest alone.
+            use_embeddings: When ``True``, cluster on sentence embeddings
+                instead of TF-IDF.  See ``run_clustering`` for details.
 
         Returns:
             tuple[pd.DataFrame, pd.DataFrame]: Cluster and anomaly outputs.
         """
-        cluster_output_data_frame = self.run_clustering(clustering_method=clustering_method)
+        cluster_output_data_frame = self.run_clustering(
+            clustering_method=clustering_method,
+            use_embeddings=use_embeddings,
+        )
         anomaly_output_data_frame = self.run_anomaly_detection(use_ensemble=use_ensemble)
         return cluster_output_data_frame, anomaly_output_data_frame
 

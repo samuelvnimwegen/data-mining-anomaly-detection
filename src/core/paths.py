@@ -27,6 +27,7 @@ class PipelinePaths:
     processed_text_views_csv: Path | None = None
     processed_clustering_matrix_npz: Path | None = None
     processed_anomaly_matrix_npy: Path | None = None
+    processed_sentence_embeddings_npy: Path | None = None
 
     @classmethod
     def from_project_root(cls, project_root_path: Path) -> PipelinePaths:
@@ -46,4 +47,5 @@ class PipelinePaths:
             processed_text_views_csv=project_root_path / "data" / "processed" / "normalized_text_views.csv",
             processed_clustering_matrix_npz=project_root_path / "data" / "processed" / "clustering_tfidf_matrix.npz",
             processed_anomaly_matrix_npy=project_root_path / "data" / "processed" / "anomaly_lsa_matrix.npy",
+            processed_sentence_embeddings_npy=project_root_path / "data" / "processed" / "sentence_embeddings.npy",
         )
