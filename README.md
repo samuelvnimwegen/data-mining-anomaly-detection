@@ -1,4 +1,4 @@
-# Data Mining Assignment 3 — Clustering and Anomaly Detection
+# Data Mining Assignment 3: Clustering and Anomaly Detection
 
 **Student:** Samuel van Nimwegen
 **Report:** `docs/report.pdf`
