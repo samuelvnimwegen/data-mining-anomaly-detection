@@ -1,6 +1,7 @@
 # Data Mining Assignment 3 — Clustering and Anomaly Detection
 
 **Student:** Samuel van Nimwegen
+**Report:** `docs/report.pdf`
 **Assignment PDF:** `docs/assignment.pdf`
 **Submission files:** `data/results/clusters.csv` and `data/results/anomalies.csv`
 
@@ -84,6 +85,7 @@ notebooks/
   09_task2_sentence_embedding_clustering.ipynb  — generates sentence_embeddings.npy
 
 docs/
+  report.pdf                      — submitted report
   assignment.pdf                  — original assignment description
 
 tests/                            — unit tests (22 tests, all passing)
