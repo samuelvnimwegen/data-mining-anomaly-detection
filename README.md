@@ -98,7 +98,7 @@ pyproject.toml                    — dependencies and tool configuration
 ```bash
 .venv/bin/ruff check .
 .venv/bin/ruff format --check .
-.venv/bin/python3 -m pytest -q
+.venv/bin/python3 -m pytest
 ```
 
 CI runs these checks automatically on every push.
